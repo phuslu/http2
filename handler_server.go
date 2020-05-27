@@ -33,7 +33,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/codes"
@@ -191,16 +190,6 @@ func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *status.Status) erro
 		h.Set("Grpc-Status", fmt.Sprintf("%d", st.Code()))
 		if m := st.Message(); m != "" {
 			h.Set("Grpc-Message", encodeGrpcMessage(m))
-		}
-
-		if p := st.Proto(); p != nil && len(p.Details) > 0 {
-			stBytes, err := proto.Marshal(p)
-			if err != nil {
-				// TODO: return error instead, when callers are able to handle it.
-				panic(err)
-			}
-
-			h.Set("Grpc-Status-Details-Bin", encodeBinHeader(stBytes))
 		}
 
 		if md := s.Trailer(); len(md) > 0 {

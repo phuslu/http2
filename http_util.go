@@ -30,10 +30,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -250,32 +248,6 @@ func (d *decodeState) processHeaderField(f hpack.HeaderField) error {
 		if !validContentType(f.Value) {
 			return streamErrorf(codes.FailedPrecondition, "transport: received the unexpected content-type %q", f.Value)
 		}
-	case "grpc-encoding":
-		d.encoding = f.Value
-	case "grpc-status":
-		code, err := strconv.Atoi(f.Value)
-		if err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed grpc-status: %v", err)
-		}
-		d.rawStatusCode = &code
-	case "grpc-message":
-		d.rawStatusMsg = decodeGrpcMessage(f.Value)
-	case "grpc-status-details-bin":
-		v, err := decodeBinHeader(f.Value)
-		if err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed grpc-status-details-bin: %v", err)
-		}
-		s := &spb.Status{}
-		if err := proto.Unmarshal(v, s); err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed grpc-status-details-bin: %v", err)
-		}
-		d.statusGen = status.FromProto(s)
-	case "grpc-timeout":
-		d.timeoutSet = true
-		var err error
-		if d.timeout, err = decodeTimeout(f.Value); err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed time-out: %v", err)
-		}
 	case ":path":
 		d.method = f.Value
 	case ":status":
@@ -284,20 +256,6 @@ func (d *decodeState) processHeaderField(f hpack.HeaderField) error {
 			return streamErrorf(codes.Internal, "transport: malformed http-status: %v", err)
 		}
 		d.httpStatus = &code
-	case "grpc-tags-bin":
-		v, err := decodeBinHeader(f.Value)
-		if err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed grpc-tags-bin: %v", err)
-		}
-		d.statsTags = v
-		d.addMetadata(f.Name, string(v))
-	case "grpc-trace-bin":
-		v, err := decodeBinHeader(f.Value)
-		if err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed grpc-trace-bin: %v", err)
-		}
-		d.statsTrace = v
-		d.addMetadata(f.Name, string(v))
 	default:
 		if isReservedHeader(f.Name) && !isWhitelistedPseudoHeader(f.Name) {
 			break

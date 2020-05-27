@@ -31,7 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
@@ -768,16 +767,6 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 	}
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status", Value: strconv.Itoa(int(st.Code()))})
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-message", Value: encodeGrpcMessage(st.Message())})
-
-	if p := st.Proto(); p != nil && len(p.Details) > 0 {
-		stBytes, err := proto.Marshal(p)
-		if err != nil {
-			// TODO: return error instead, when callers are able to handle it.
-			panic(err)
-		}
-
-		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status-details-bin", Value: encodeBinHeader(stBytes)})
-	}
 
 	// Attach the trailer metadata.
 	for k, vv := range s.trailer {
