@@ -32,7 +32,6 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 )
 
@@ -78,7 +77,7 @@ type http2Client struct {
 	// Boolean to keep track of reading activity on transport.
 	// 1 is true and 0 is false.
 	activity uint32 // Accessed atomically.
-	kp       keepalive.ClientParameters
+	kp       ClientParameters
 
 	statsHandler stats.Handler
 

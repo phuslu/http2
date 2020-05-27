@@ -30,7 +30,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 )
 
@@ -464,8 +463,8 @@ type ServerConfig struct {
 	AuthInfo              credentials.AuthInfo
 	InTapHandle           TapServerInHandle
 	StatsHandler          stats.Handler
-	KeepaliveParams       keepalive.ServerParameters
-	KeepalivePolicy       keepalive.EnforcementPolicy
+	KeepaliveParams       ServerParameters
+	KeepalivePolicy       EnforcementPolicy
 	InitialWindowSize     int32
 	InitialConnWindowSize int32
 	WriteBufferSize       int
@@ -494,7 +493,7 @@ type ConnectOptions struct {
 	// TransportCredentials stores the Authenticator required to setup a client connection.
 	TransportCredentials credentials.TransportCredentials
 	// KeepaliveParams stores the keepalive parameters.
-	KeepaliveParams keepalive.ClientParameters
+	KeepaliveParams ClientParameters
 	// StatsHandler stores the handler for stats.
 	StatsHandler stats.Handler
 	// InitialWindowSize sets the initial window size for a stream.

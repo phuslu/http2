@@ -35,7 +35,6 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 )
 
@@ -69,10 +68,10 @@ type http2Server struct {
 	// 1 is true and 0 is false.
 	activity uint32 // Accessed atomically.
 	// Keepalive and max-age parameters for the server.
-	kp keepalive.ServerParameters
+	kp ServerParameters
 
 	// Keepalive enforcement policy.
-	kep keepalive.EnforcementPolicy
+	kep EnforcementPolicy
 	// The time instance last ping was received.
 	lastPingAt time.Time
 	// Number of times the client has violated keepalive ping policy so far.
@@ -880,11 +879,11 @@ func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) (
 }
 
 // keepalive running in a separate goroutine does the following:
-// 1. Gracefully closes an idle connection after a duration of keepalive.MaxConnectionIdle.
-// 2. Gracefully closes any connection after a duration of keepalive.MaxConnectionAge.
-// 3. Forcibly closes a connection after an additive period of keepalive.MaxConnectionAgeGrace over keepalive.MaxConnectionAge.
-// 4. Makes sure a connection is alive by sending pings with a frequency of keepalive.Time and closes a non-responsive connection
-// after an additional duration of keepalive.Timeout.
+// 1. Gracefully closes an idle connection after a duration of MaxConnectionIdle.
+// 2. Gracefully closes any connection after a duration of MaxConnectionAge.
+// 3. Forcibly closes a connection after an additive period of MaxConnectionAgeGrace over MaxConnectionAge.
+// 4. Makes sure a connection is alive by sending pings with a frequency of Time and closes a non-responsive connection
+// after an additional duration of Timeout.
 func (t *http2Server) keepalive() {
 	p := &ping{}
 	var pingSent bool
