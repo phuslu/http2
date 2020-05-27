@@ -24,6 +24,7 @@
 package fasthttp2
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -33,7 +34,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"

@@ -21,14 +21,13 @@
 package fasthttp2
 
 import (
-	stdctx "context"
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -720,9 +719,9 @@ func wait(ctx, tctx context.Context, done, goAway <-chan struct{}, proceed <-cha
 // ContextErr converts the error from context package into a StreamError.
 func ContextErr(err error) StreamError {
 	switch err {
-	case context.DeadlineExceeded, stdctx.DeadlineExceeded:
+	case context.DeadlineExceeded:
 		return streamErrorf(codesDeadlineExceeded, "%v", err)
-	case context.Canceled, stdctx.Canceled:
+	case context.Canceled:
 		return streamErrorf(codesCanceled, "%v", err)
 	}
 	return streamErrorf(codesInternal, "Unexpected error from context packet: %v", err)

@@ -20,6 +20,7 @@ package fasthttp2
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"math"
 	"net"
@@ -28,7 +29,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
