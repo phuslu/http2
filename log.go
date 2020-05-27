@@ -21,30 +21,27 @@
 
 package fasthttp2
 
-import "google.golang.org/grpc/grpclog"
+import (
+	"log"
+	"os"
+)
 
-const logLevel = 2
+var (
+	logger = log.New(os.Stderr, "fasthttp2: ", log.Lshortfile)
+)
 
 func infof(format string, args ...interface{}) {
-	if grpclog.V(logLevel) {
-		grpclog.Infof(format, args...)
-	}
+	logger.Printf(format, args...)
 }
 
 func warningf(format string, args ...interface{}) {
-	if grpclog.V(logLevel) {
-		grpclog.Warningf(format, args...)
-	}
+	logger.Printf(format, args...)
 }
 
 func errorf(format string, args ...interface{}) {
-	if grpclog.V(logLevel) {
-		grpclog.Errorf(format, args...)
-	}
+	logger.Printf(format, args...)
 }
 
 func fatalf(format string, args ...interface{}) {
-	if grpclog.V(logLevel) {
-		grpclog.Fatalf(format, args...)
-	}
+	logger.Fatalf(format, args...)
 }
