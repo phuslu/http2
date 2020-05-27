@@ -25,7 +25,7 @@ import (
 )
 
 // Info defines the relevant information needed by the handles.
-type Info struct {
+type TapInfo struct {
 	// FullMethodName is the string of grpc method (in the format of
 	// /package.service/method).
 	FullMethodName string
@@ -48,4 +48,4 @@ type Info struct {
 // blocking/time-consuming work in this handle. Otherwise all the RPCs would
 // slow down. Also, for the same reason, this handle won't be called
 // concurrently by gRPC.
-type ServerInHandle func(ctx context.Context, info *Info) (context.Context, error)
+type TapServerInHandle func(ctx context.Context, info *TapInfo) (context.Context, error)

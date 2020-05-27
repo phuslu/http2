@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/grpc/tap"
 )
 
 // recvMsg represents the received msg from the transport. All transport
@@ -464,7 +463,7 @@ const (
 type ServerConfig struct {
 	MaxStreams            uint32
 	AuthInfo              credentials.AuthInfo
-	InTapHandle           tap.ServerInHandle
+	InTapHandle           TapServerInHandle
 	StatsHandler          stats.Handler
 	KeepaliveParams       keepalive.ServerParameters
 	KeepalivePolicy       keepalive.EnforcementPolicy

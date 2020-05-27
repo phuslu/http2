@@ -39,7 +39,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/grpc/tap"
 )
 
 // ErrIllegalHeaderWrite indicates that setting header is illegal because of
@@ -55,7 +54,7 @@ type http2Server struct {
 	localAddr   net.Addr
 	maxStreamID uint32               // max stream ID ever seen
 	authInfo    credentials.AuthInfo // auth info about the connection
-	inTapHandle tap.ServerInHandle
+	inTapHandle TapServerInHandle
 	framer      *framer
 	hBuf        *bytes.Buffer  // the buffer for HPACK encoding
 	hEnc        *hpack.Encoder // HPACK encoder
@@ -310,7 +309,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 	if t.inTapHandle != nil {
 		var err error
-		info := &tap.Info{
+		info := &TapInfo{
 			FullMethodName: state.method,
 		}
 		s.ctx, err = t.inTapHandle(s.ctx, info)
