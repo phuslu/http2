@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc/credentials"
 )
 
 // NewServerHandlerTransport returns a ServerTransport handling gRPC
@@ -310,7 +309,7 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 		Addr: ht.RemoteAddr(),
 	}
 	if req.TLS != nil {
-		pr.AuthInfo = credentials.TLSInfo{State: *req.TLS}
+		pr.AuthInfo = TLSInfo{State: *req.TLS}
 	}
 	ctx = NewIncomingContext(ctx, ht.headerMD)
 	ctx = NewContext(ctx, pr)

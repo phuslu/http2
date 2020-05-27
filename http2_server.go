@@ -34,7 +34,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/stats"
 )
 
@@ -49,8 +48,8 @@ type http2Server struct {
 	conn        net.Conn
 	remoteAddr  net.Addr
 	localAddr   net.Addr
-	maxStreamID uint32               // max stream ID ever seen
-	authInfo    credentials.AuthInfo // auth info about the connection
+	maxStreamID uint32   // max stream ID ever seen
+	authInfo    AuthInfo // auth info about the connection
 	inTapHandle TapServerInHandle
 	framer      *framer
 	hBuf        *bytes.Buffer  // the buffer for HPACK encoding

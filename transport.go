@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/stats"
 )
 
@@ -460,7 +459,7 @@ const (
 // ServerConfig consists of all the configurations to establish a server transport.
 type ServerConfig struct {
 	MaxStreams            uint32
-	AuthInfo              credentials.AuthInfo
+	AuthInfo              AuthInfo
 	InTapHandle           TapServerInHandle
 	StatsHandler          stats.Handler
 	KeepaliveParams       ServerParameters
@@ -489,9 +488,9 @@ type ConnectOptions struct {
 	// FailOnNonTempDialError specifies if gRPC fails on non-temporary dial errors.
 	FailOnNonTempDialError bool
 	// PerRPCCredentials stores the PerRPCCredentials required to issue RPCs.
-	PerRPCCredentials []credentials.PerRPCCredentials
+	PerRPCCredentials []PerRPCCredentials
 	// TransportCredentials stores the Authenticator required to setup a client connection.
-	TransportCredentials credentials.TransportCredentials
+	TransportCredentials TransportCredentials
 	// KeepaliveParams stores the keepalive parameters.
 	KeepaliveParams ClientParameters
 	// StatsHandler stores the handler for stats.
@@ -548,7 +547,7 @@ type CallHdr struct {
 	SendCompress string
 
 	// Creds specifies credentials.PerRPCCredentials for a call.
-	Creds credentials.PerRPCCredentials
+	Creds PerRPCCredentials
 
 	// Flush indicates whether a new stream command should be sent
 	// to the peer without waiting for the first data. This is

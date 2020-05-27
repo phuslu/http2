@@ -31,7 +31,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/stats"
 )
 
@@ -45,8 +44,8 @@ type http2Client struct {
 	conn       net.Conn // underlying communication channel
 	remoteAddr net.Addr
 	localAddr  net.Addr
-	authInfo   credentials.AuthInfo // auth info about the connection
-	nextID     uint32               // the next stream ID to be used
+	authInfo   AuthInfo // auth info about the connection
+	nextID     uint32   // the next stream ID to be used
 
 	// goAway is closed to notify the upper layer (i.e., addrConn.transportMonitor)
 	// that the server sent GoAway on this transport.
@@ -72,7 +71,7 @@ type http2Client struct {
 
 	isSecure bool
 
-	creds []credentials.PerRPCCredentials
+	creds []PerRPCCredentials
 
 	// Boolean to keep track of reading activity on transport.
 	// 1 is true and 0 is false.
@@ -164,7 +163,7 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions, t
 	}(conn)
 	var (
 		isSecure bool
-		authInfo credentials.AuthInfo
+		authInfo AuthInfo
 	)
 	if creds := opts.TransportCredentials; creds != nil {
 		scheme = "https"
@@ -373,7 +372,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		}
 	}
 	callAuthData := map[string]string{}
-	// Check if credentials.PerRPCCredentials were provided via call options.
+	// Check if PerRPCCredentials were provided via call options.
 	// Note: if these credentials are provided both via dial options and call
 	// options, then both sets of credentials will be applied.
 	if callCreds := callHdr.Creds; callCreds != nil {
