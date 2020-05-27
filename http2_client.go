@@ -31,7 +31,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/stats"
 )
 
 // http2Client implements the ClientTransport interface with HTTP2.
@@ -78,7 +77,7 @@ type http2Client struct {
 	activity uint32 // Accessed atomically.
 	kp       ClientParameters
 
-	statsHandler stats.Handler
+	statsHandler statsHandler
 
 	initialWindowSize int32
 
@@ -245,11 +244,11 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions, t
 	// keepalive routine will make it writable, if need be.
 	t.awakenKeepalive <- struct{}{}
 	if t.statsHandler != nil {
-		t.ctx = t.statsHandler.TagConn(t.ctx, &stats.ConnTagInfo{
+		t.ctx = t.statsHandler.TagConn(t.ctx, &ConnTagInfo{
 			RemoteAddr: t.remoteAddr,
 			LocalAddr:  t.localAddr,
 		})
-		connBegin := &stats.ConnBegin{
+		connBegin := &ConnBegin{
 			Client: true,
 		}
 		t.statsHandler.HandleConn(t.ctx, connBegin)
@@ -440,10 +439,10 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	for k, v := range callAuthData {
 		headerFields = append(headerFields, hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
 	}
-	if b := stats.OutgoingTags(ctx); b != nil {
+	if b := OutgoingTags(ctx); b != nil {
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-tags-bin", Value: encodeBinHeader(b)})
 	}
-	if b := stats.OutgoingTrace(ctx); b != nil {
+	if b := OutgoingTrace(ctx); b != nil {
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-trace-bin", Value: encodeBinHeader(b)})
 	}
 	if md, ok := FromOutgoingContext(ctx); ok {
@@ -504,7 +503,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	s.mu.Unlock()
 
 	if t.statsHandler != nil {
-		outHeader := &stats.OutHeader{
+		outHeader := &OutHeader{
 			Client:      true,
 			FullMethod:  callHdr.Method,
 			RemoteAddr:  t.remoteAddr,
@@ -601,7 +600,7 @@ func (t *http2Client) Close() (err error) {
 		s.write(recvMsg{err: ErrConnClosing})
 	}
 	if t.statsHandler != nil {
-		connEnd := &stats.ConnEnd{
+		connEnd := &ConnEnd{
 			Client: true,
 		}
 		t.statsHandler.HandleConn(t.ctx, connEnd)
@@ -1036,13 +1035,13 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	defer func() {
 		if t.statsHandler != nil {
 			if isHeader {
-				inHeader := &stats.InHeader{
+				inHeader := &InHeader{
 					Client:     true,
 					WireLength: int(frame.Header().Length),
 				}
 				t.statsHandler.HandleRPC(s.ctx, inHeader)
 			} else {
-				inTrailer := &stats.InTrailer{
+				inTrailer := &InTrailer{
 					Client:     true,
 					WireLength: int(frame.Header().Length),
 				}

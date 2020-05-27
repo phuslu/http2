@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc/stats"
 )
 
 // recvMsg represents the received msg from the transport. All transport
@@ -461,7 +460,7 @@ type ServerConfig struct {
 	MaxStreams            uint32
 	AuthInfo              AuthInfo
 	InTapHandle           TapServerInHandle
-	StatsHandler          stats.Handler
+	StatsHandler          statsHandler
 	KeepaliveParams       ServerParameters
 	KeepalivePolicy       EnforcementPolicy
 	InitialWindowSize     int32
@@ -494,7 +493,7 @@ type ConnectOptions struct {
 	// KeepaliveParams stores the keepalive parameters.
 	KeepaliveParams ClientParameters
 	// StatsHandler stores the handler for stats.
-	StatsHandler stats.Handler
+	StatsHandler statsHandler
 	// InitialWindowSize sets the initial window size for a stream.
 	InitialWindowSize int32
 	// InitialConnWindowSize sets the initial window size for a connection.

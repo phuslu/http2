@@ -34,7 +34,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/stats"
 )
 
 // ErrIllegalHeaderWrite indicates that setting header is illegal because of
@@ -62,7 +61,7 @@ type http2Server struct {
 	fc         *inFlow
 	// sendQuotaPool provides flow control to outbound message.
 	sendQuotaPool *quotaPool
-	stats         stats.Handler
+	stats         statsHandler
 	// Flag to keep track of reading activity on transport.
 	// 1 is true and 0 is false.
 	activity uint32 // Accessed atomically.
@@ -207,11 +206,11 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 		}
 	}
 	if t.stats != nil {
-		t.ctx = t.stats.TagConn(t.ctx, &stats.ConnTagInfo{
+		t.ctx = t.stats.TagConn(t.ctx, &ConnTagInfo{
 			RemoteAddr: t.remoteAddr,
 			LocalAddr:  t.localAddr,
 		})
-		connBegin := &stats.ConnBegin{}
+		connBegin := &ConnBegin{}
 		t.stats.HandleConn(t.ctx, connBegin)
 	}
 	t.framer.writer.Flush()
@@ -298,10 +297,10 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 		s.ctx = NewIncomingContext(s.ctx, state.mdata)
 	}
 	if state.statsTags != nil {
-		s.ctx = stats.SetIncomingTags(s.ctx, state.statsTags)
+		s.ctx = SetIncomingTags(s.ctx, state.statsTags)
 	}
 	if state.statsTrace != nil {
-		s.ctx = stats.SetIncomingTrace(s.ctx, state.statsTrace)
+		s.ctx = SetIncomingTrace(s.ctx, state.statsTrace)
 	}
 	if t.inTapHandle != nil {
 		var err error
@@ -344,8 +343,8 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 	s.ctx = traceCtx(s.ctx, s.method)
 	if t.stats != nil {
-		s.ctx = t.stats.TagRPC(s.ctx, &stats.RPCTagInfo{FullMethodName: s.method})
-		inHeader := &stats.InHeader{
+		s.ctx = t.stats.TagRPC(s.ctx, &RPCTagInfo{FullMethodName: s.method})
+		inHeader := &InHeader{
 			FullMethod:  s.method,
 			RemoteAddr:  t.remoteAddr,
 			LocalAddr:   t.localAddr,
@@ -713,7 +712,7 @@ func (t *http2Server) WriteHeader(s *Stream, md MD) error {
 		endStream: false,
 	})
 	if t.stats != nil {
-		outHeader := &stats.OutHeader{
+		outHeader := &OutHeader{
 			//WireLength: // TODO(mmukhi): Revisit this later, if needed.
 		}
 		t.stats.HandleRPC(s.Context(), outHeader)
@@ -777,7 +776,7 @@ func (t *http2Server) WriteStatus(s *Stream, st *Status) error {
 		endStream: true,
 	})
 	if t.stats != nil {
-		t.stats.HandleRPC(s.Context(), &stats.OutTrailer{})
+		t.stats.HandleRPC(s.Context(), &OutTrailer{})
 	}
 	t.closeStream(s)
 	return nil
@@ -1098,7 +1097,7 @@ func (t *http2Server) Close() error {
 		s.cancel()
 	}
 	if t.stats != nil {
-		connEnd := &stats.ConnEnd{}
+		connEnd := &ConnEnd{}
 		t.stats.HandleConn(t.ctx, connEnd)
 	}
 	return err
