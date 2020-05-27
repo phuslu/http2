@@ -32,8 +32,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -48,46 +46,46 @@ const (
 
 var (
 	clientPreface   = []byte(http2.ClientPreface)
-	http2ErrConvTab = map[http2.ErrCode]codes.Code{
-		http2.ErrCodeNo:                 codes.Internal,
-		http2.ErrCodeProtocol:           codes.Internal,
-		http2.ErrCodeInternal:           codes.Internal,
-		http2.ErrCodeFlowControl:        codes.ResourceExhausted,
-		http2.ErrCodeSettingsTimeout:    codes.Internal,
-		http2.ErrCodeStreamClosed:       codes.Internal,
-		http2.ErrCodeFrameSize:          codes.Internal,
-		http2.ErrCodeRefusedStream:      codes.Unavailable,
-		http2.ErrCodeCancel:             codes.Canceled,
-		http2.ErrCodeCompression:        codes.Internal,
-		http2.ErrCodeConnect:            codes.Internal,
-		http2.ErrCodeEnhanceYourCalm:    codes.ResourceExhausted,
-		http2.ErrCodeInadequateSecurity: codes.PermissionDenied,
-		http2.ErrCodeHTTP11Required:     codes.FailedPrecondition,
+	http2ErrConvTab = map[http2.ErrCode]Code{
+		http2.ErrCodeNo:                 codesInternal,
+		http2.ErrCodeProtocol:           codesInternal,
+		http2.ErrCodeInternal:           codesInternal,
+		http2.ErrCodeFlowControl:        codesResourceExhausted,
+		http2.ErrCodeSettingsTimeout:    codesInternal,
+		http2.ErrCodeStreamClosed:       codesInternal,
+		http2.ErrCodeFrameSize:          codesInternal,
+		http2.ErrCodeRefusedStream:      codesUnavailable,
+		http2.ErrCodeCancel:             codesCanceled,
+		http2.ErrCodeCompression:        codesInternal,
+		http2.ErrCodeConnect:            codesInternal,
+		http2.ErrCodeEnhanceYourCalm:    codesResourceExhausted,
+		http2.ErrCodeInadequateSecurity: codesPermissionDenied,
+		http2.ErrCodeHTTP11Required:     codesFailedPrecondition,
 	}
-	statusCodeConvTab = map[codes.Code]http2.ErrCode{
-		codes.Internal:          http2.ErrCodeInternal,
-		codes.Canceled:          http2.ErrCodeCancel,
-		codes.Unavailable:       http2.ErrCodeRefusedStream,
-		codes.ResourceExhausted: http2.ErrCodeEnhanceYourCalm,
-		codes.PermissionDenied:  http2.ErrCodeInadequateSecurity,
+	statusCodeConvTab = map[Code]http2.ErrCode{
+		codesInternal:          http2.ErrCodeInternal,
+		codesCanceled:          http2.ErrCodeCancel,
+		codesUnavailable:       http2.ErrCodeRefusedStream,
+		codesResourceExhausted: http2.ErrCodeEnhanceYourCalm,
+		codesPermissionDenied:  http2.ErrCodeInadequateSecurity,
 	}
-	httpStatusConvTab = map[int]codes.Code{
+	httpStatusConvTab = map[int]Code{
 		// 400 Bad Request - INTERNAL.
-		http.StatusBadRequest: codes.Internal,
+		http.StatusBadRequest: codesInternal,
 		// 401 Unauthorized  - UNAUTHENTICATED.
-		http.StatusUnauthorized: codes.Unauthenticated,
+		http.StatusUnauthorized: codesUnauthenticated,
 		// 403 Forbidden - PERMISSION_DENIED.
-		http.StatusForbidden: codes.PermissionDenied,
+		http.StatusForbidden: codesPermissionDenied,
 		// 404 Not Found - UNIMPLEMENTED.
-		http.StatusNotFound: codes.Unimplemented,
+		http.StatusNotFound: codesUnimplemented,
 		// 429 Too Many Requests - UNAVAILABLE.
-		http.StatusTooManyRequests: codes.Unavailable,
+		http.StatusTooManyRequests: codesUnavailable,
 		// 502 Bad Gateway - UNAVAILABLE.
-		http.StatusBadGateway: codes.Unavailable,
+		http.StatusBadGateway: codesUnavailable,
 		// 503 Service Unavailable - UNAVAILABLE.
-		http.StatusServiceUnavailable: codes.Unavailable,
+		http.StatusServiceUnavailable: codesUnavailable,
 		// 504 Gateway timeout - UNAVAILABLE.
-		http.StatusGatewayTimeout: codes.Unavailable,
+		http.StatusGatewayTimeout: codesUnavailable,
 	}
 )
 
@@ -98,7 +96,7 @@ type decodeState struct {
 	// statusGen caches the stream status received from the trailer the server
 	// sent.  Client side only.  Do not access directly.  After all trailers are
 	// parsed, use the status method to retrieve the status.
-	statusGen *status.Status
+	statusGen *Status
 	// rawStatusCode and rawStatusMsg are set from the raw trailer fields and are not
 	// intended for direct access outside of parsing.
 	rawStatusCode *int
@@ -160,10 +158,10 @@ func validContentType(t string) bool {
 	return true
 }
 
-func (d *decodeState) status() *status.Status {
+func (d *decodeState) status() *Status {
 	if d.statusGen == nil {
 		// No status-details were provided; generate status using code/msg.
-		d.statusGen = status.New(codes.Code(int32(*(d.rawStatusCode))), d.rawStatusMsg)
+		d.statusGen = statusNew(Code(int32(*(d.rawStatusCode))), d.rawStatusMsg)
 	}
 	return d.statusGen
 }
@@ -212,13 +210,13 @@ func (d *decodeState) decodeResponseHeader(frame *http2.MetaHeadersFrame) error 
 	// If grpc status doesn't exist and http status doesn't exist,
 	// then it's a malformed header.
 	if d.httpStatus == nil {
-		return streamErrorf(codes.Internal, "malformed header: doesn't contain status(gRPC or HTTP)")
+		return streamErrorf(codesInternal, "malformed header: doesn't contain status(gRPC or HTTP)")
 	}
 
 	if *(d.httpStatus) != http.StatusOK {
 		code, ok := httpStatusConvTab[*(d.httpStatus)]
 		if !ok {
-			code = codes.Unknown
+			code = codesUnknown
 		}
 		return streamErrorf(code, http.StatusText(*(d.httpStatus)))
 	}
@@ -229,7 +227,7 @@ func (d *decodeState) decodeResponseHeader(frame *http2.MetaHeadersFrame) error 
 	// will be propogated to the user.
 	// Otherwise, it will be ignored. In which case, status from
 	// a later trailer, that has StreamEnded flag set, is propogated.
-	code := int(codes.Unknown)
+	code := int(codesUnknown)
 	d.rawStatusCode = &code
 	return nil
 
@@ -246,14 +244,14 @@ func (d *decodeState) processHeaderField(f hpack.HeaderField) error {
 	switch f.Name {
 	case "content-type":
 		if !validContentType(f.Value) {
-			return streamErrorf(codes.FailedPrecondition, "transport: received the unexpected content-type %q", f.Value)
+			return streamErrorf(codesFailedPrecondition, "transport: received the unexpected content-type %q", f.Value)
 		}
 	case ":path":
 		d.method = f.Value
 	case ":status":
 		code, err := strconv.Atoi(f.Value)
 		if err != nil {
-			return streamErrorf(codes.Internal, "transport: malformed http-status: %v", err)
+			return streamErrorf(codesInternal, "transport: malformed http-status: %v", err)
 		}
 		d.httpStatus = &code
 	default:

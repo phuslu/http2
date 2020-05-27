@@ -34,13 +34,11 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/tap"
 )
 
@@ -732,7 +730,7 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 // There is no further I/O operations being able to perform on this stream.
 // TODO(zhaoq): Now it indicates the end of entire stream. Revisit if early
 // OK is adopted.
-func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
+func (t *http2Server) WriteStatus(s *Stream, st *Status) error {
 	select {
 	case <-t.ctx.Done():
 		return ErrConnClosing
@@ -805,7 +803,7 @@ func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) (
 	s.mu.Lock()
 	if s.state == streamDone {
 		s.mu.Unlock()
-		return streamErrorf(codes.Unknown, "the stream has been done")
+		return streamErrorf(codesUnknown, "the stream has been done")
 	}
 	if !s.headerOk {
 		writeHeaderFrame = true
@@ -1079,7 +1077,7 @@ func (t *http2Server) itemHandler(i item) error {
 		}
 		return t.framer.fr.WritePing(i.ack, i.data)
 	default:
-		err := status.Errorf(codes.Internal, "transport: http2Server.controller got unexpected item type %t", i)
+		err := statusErrorf(codesInternal, "transport: http2Server.controller got unexpected item type %t", i)
 		errorf("%v", err)
 		return err
 	}

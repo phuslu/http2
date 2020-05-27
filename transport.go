@@ -30,12 +30,10 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/tap"
 )
 
@@ -256,7 +254,7 @@ type Stream struct {
 	// multiple times.
 	headerDone bool
 	// the status error received from the server.
-	status *status.Status
+	status *Status
 	// rstStream indicates whether a RST_STREAM frame needs to be sent
 	// to the server to signify that this stream is closing.
 	rstStream bool
@@ -340,7 +338,7 @@ func (s *Stream) Method() string {
 }
 
 // Status returns the status received from the server.
-func (s *Stream) Status() *status.Status {
+func (s *Stream) Status() *Status {
 	return s.status
 }
 
@@ -411,7 +409,7 @@ func (t *transportReader) Read(p []byte) (n int, err error) {
 
 // finish sets the stream's state and status, and closes the done channel.
 // s.mu must be held by the caller.  st must always be non-nil.
-func (s *Stream) finish(st *status.Status) {
+func (s *Stream) finish(st *Status) {
 	s.status = st
 	s.state = streamDone
 	close(s.done)
@@ -625,7 +623,7 @@ type ServerTransport interface {
 
 	// WriteStatus sends the status of a stream to the client.  WriteStatus is
 	// the final call made on a stream and always occurs.
-	WriteStatus(s *Stream, st *status.Status) error
+	WriteStatus(s *Stream, st *Status) error
 
 	// Close tears down the transport. Once it is called, the transport
 	// should not be accessed any more. All the pending streams and their
@@ -640,7 +638,7 @@ type ServerTransport interface {
 }
 
 // streamErrorf creates an StreamError with the specified error code and description.
-func streamErrorf(c codes.Code, format string, a ...interface{}) StreamError {
+func streamErrorf(c Code, format string, a ...interface{}) StreamError {
 	return StreamError{
 		Code: c,
 		Desc: fmt.Sprintf(format, a...),
@@ -688,14 +686,14 @@ var (
 	ErrConnClosing = connectionErrorf(true, nil, "transport is closing")
 	// ErrStreamDrain indicates that the stream is rejected by the server because
 	// the server stops accepting new RPCs.
-	ErrStreamDrain = streamErrorf(codes.Unavailable, "the server stops accepting new RPCs")
+	ErrStreamDrain = streamErrorf(codesUnavailable, "the server stops accepting new RPCs")
 )
 
 // TODO: See if we can replace StreamError with status package errors.
 
 // StreamError is an error that only affects one stream within a connection.
 type StreamError struct {
-	Code codes.Code
+	Code Code
 	Desc string
 }
 
@@ -723,11 +721,11 @@ func wait(ctx, tctx context.Context, done, goAway <-chan struct{}, proceed <-cha
 func ContextErr(err error) StreamError {
 	switch err {
 	case context.DeadlineExceeded, stdctx.DeadlineExceeded:
-		return streamErrorf(codes.DeadlineExceeded, "%v", err)
+		return streamErrorf(codesDeadlineExceeded, "%v", err)
 	case context.Canceled, stdctx.Canceled:
-		return streamErrorf(codes.Canceled, "%v", err)
+		return streamErrorf(codesCanceled, "%v", err)
 	}
-	return streamErrorf(codes.Internal, "Unexpected error from context packet: %v", err)
+	return streamErrorf(codesInternal, "Unexpected error from context packet: %v", err)
 }
 
 // GoAwayReason contains the reason for the GoAway frame received.

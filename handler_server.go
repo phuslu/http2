@@ -35,11 +35,9 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 )
 
 // NewServerHandlerTransport returns a ServerTransport handling gRPC
@@ -72,7 +70,7 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request) (ServerTr
 	if v := r.Header.Get("grpc-timeout"); v != "" {
 		to, err := decodeTimeout(v)
 		if err != nil {
-			return nil, streamErrorf(codes.Internal, "malformed time-out: %v", err)
+			return nil, streamErrorf(codesInternal, "malformed time-out: %v", err)
 		}
 		st.timeoutSet = true
 		st.timeout = to
@@ -90,7 +88,7 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request) (ServerTr
 		for _, v := range vv {
 			v, err := decodeMetadataHeader(k, v)
 			if err != nil {
-				return nil, streamErrorf(codes.InvalidArgument, "malformed binary metadata: %v", err)
+				return nil, streamErrorf(codesInvalidArgument, "malformed binary metadata: %v", err)
 			}
 			metakv = append(metakv, k, v)
 		}
@@ -174,7 +172,7 @@ func (ht *serverHandlerTransport) do(fn func()) error {
 	}
 }
 
-func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *status.Status) error {
+func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *Status) error {
 	ht.writeStatusMu.Lock()
 	defer ht.writeStatusMu.Unlock()
 

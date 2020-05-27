@@ -31,13 +31,11 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/grpc/status"
 )
 
 // http2Client implements the ClientTransport interface with HTTP2.
@@ -369,7 +367,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	for _, c := range t.creds {
 		data, err := c.GetRequestMetadata(ctx, audience)
 		if err != nil {
-			return nil, streamErrorf(codes.Internal, "transport: %v", err)
+			return nil, streamErrorf(codesInternal, "transport: %v", err)
 		}
 		for k, v := range data {
 			// Capital header names are illegal in HTTP/2.
@@ -383,11 +381,11 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	// options, then both sets of credentials will be applied.
 	if callCreds := callHdr.Creds; callCreds != nil {
 		if !t.isSecure && callCreds.RequireTransportSecurity() {
-			return nil, streamErrorf(codes.Unauthenticated, "transport: cannot send secure credentials on an insecure connection")
+			return nil, streamErrorf(codesUnauthenticated, "transport: cannot send secure credentials on an insecure connection")
 		}
 		data, err := callCreds.GetRequestMetadata(ctx, audience)
 		if err != nil {
-			return nil, streamErrorf(codes.Internal, "transport: %v", err)
+			return nil, streamErrorf(codesInternal, "transport: %v", err)
 		}
 		for k, v := range data {
 			// Capital header names are illegal in HTTP/2
@@ -846,7 +844,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 		if err := s.fc.onData(uint32(size)); err != nil {
 			s.rstStream = true
 			s.rstError = http2.ErrCodeFlowControl
-			s.finish(status.New(codes.Internal, err.Error()))
+			s.finish(statusNew(codesInternal, err.Error()))
 			s.mu.Unlock()
 			s.write(recvMsg{err: io.EOF})
 			return
@@ -874,7 +872,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 			s.mu.Unlock()
 			return
 		}
-		s.finish(status.New(codes.Internal, "server closed the stream without sending trailers"))
+		s.finish(statusNew(codesInternal, "server closed the stream without sending trailers"))
 		s.mu.Unlock()
 		s.write(recvMsg{err: io.EOF})
 	}
@@ -897,9 +895,9 @@ func (t *http2Client) handleRSTStream(f *http2.RSTStreamFrame) {
 	statusCode, ok := http2ErrConvTab[http2.ErrCode(f.ErrCode)]
 	if !ok {
 		warningf("transport: http2Client.handleRSTStream found no mapped gRPC status for the received http2 error %v", f.ErrCode)
-		statusCode = codes.Unknown
+		statusCode = codesUnknown
 	}
-	s.finish(status.Newf(statusCode, "stream terminated by RST_STREAM with error code: %v", f.ErrCode))
+	s.finish(statusNewf(statusCode, "stream terminated by RST_STREAM with error code: %v", f.ErrCode))
 	s.mu.Unlock()
 	s.write(recvMsg{err: io.EOF})
 }
