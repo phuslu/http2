@@ -36,7 +36,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
 
@@ -93,7 +92,7 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request) (ServerTr
 			metakv = append(metakv, k, v)
 		}
 	}
-	st.headerMD = metadata.Pairs(metakv...)
+	st.headerMD = Pairs(metakv...)
 
 	return st, nil
 }
@@ -110,7 +109,7 @@ type serverHandlerTransport struct {
 	timeout          time.Duration
 	didCommonHeaders bool
 
-	headerMD metadata.MD
+	headerMD MD
 
 	closeOnce sync.Once
 	closedCh  chan struct{} // closed on Close
@@ -249,7 +248,7 @@ func (ht *serverHandlerTransport) Write(s *Stream, hdr []byte, data []byte, opts
 	})
 }
 
-func (ht *serverHandlerTransport) WriteHeader(s *Stream, md metadata.MD) error {
+func (ht *serverHandlerTransport) WriteHeader(s *Stream, md MD) error {
 	return ht.do(func() {
 		ht.writeCommonHeaders(s)
 		h := ht.rw.Header()
@@ -314,7 +313,7 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 	if req.TLS != nil {
 		pr.AuthInfo = credentials.TLSInfo{State: *req.TLS}
 	}
-	ctx = metadata.NewIncomingContext(ctx, ht.headerMD)
+	ctx = NewIncomingContext(ctx, ht.headerMD)
 	ctx = peer.NewContext(ctx, pr)
 	s.ctx = newContextWithStream(ctx, s)
 	s.trReader = &transportReader{

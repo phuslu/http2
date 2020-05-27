@@ -33,7 +33,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
 )
@@ -450,7 +449,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	if b := stats.OutgoingTrace(ctx); b != nil {
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-trace-bin", Value: encodeBinHeader(b)})
 	}
-	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+	if md, ok := FromOutgoingContext(ctx); ok {
 		for k, vv := range md {
 			// HTTP doesn't allow you to set pseudoheaders after non pseudoheaders were set.
 			if isReservedHeader(k) {
@@ -461,7 +460,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 			}
 		}
 	}
-	if md, ok := t.md.(*metadata.MD); ok {
+	if md, ok := t.md.(*MD); ok {
 		for k, vv := range *md {
 			if isReservedHeader(k) {
 				continue

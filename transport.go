@@ -31,7 +31,6 @@ import (
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/stats"
 )
 
@@ -240,9 +239,9 @@ type Stream struct {
 	// Close headerChan to indicate the end of reception of header metadata.
 	headerChan chan struct{}
 	// header caches the received header metadata.
-	header metadata.MD
+	header MD
 	// The key-value map of trailer metadata.
-	trailer metadata.MD
+	trailer MD
 
 	mu sync.RWMutex // guard the following
 	// headerOK becomes true from the first header is about to send.
@@ -290,7 +289,7 @@ func (s *Stream) GoAway() <-chan struct{} {
 // Header acquires the key-value pairs of header metadata once it
 // is available. It blocks until i) the metadata is ready or ii) there is no
 // header metadata or iii) the stream is canceled/expired.
-func (s *Stream) Header() (metadata.MD, error) {
+func (s *Stream) Header() (MD, error) {
 	var err error
 	select {
 	case <-s.ctx.Done():
@@ -312,7 +311,7 @@ func (s *Stream) Header() (metadata.MD, error) {
 // Trailer returns the cached trailer metedata. Note that if it is not called
 // after the entire stream is done, it could return an empty MD. Client
 // side only.
-func (s *Stream) Trailer() metadata.MD {
+func (s *Stream) Trailer() MD {
 	s.mu.RLock()
 	c := s.trailer.Copy()
 	s.mu.RUnlock()
@@ -342,7 +341,7 @@ func (s *Stream) Status() *Status {
 
 // SetHeader sets the header metadata. This can be called multiple times.
 // Server side only.
-func (s *Stream) SetHeader(md metadata.MD) error {
+func (s *Stream) SetHeader(md MD) error {
 	s.mu.Lock()
 	if s.headerOk || s.state == streamDone {
 		s.mu.Unlock()
@@ -352,19 +351,19 @@ func (s *Stream) SetHeader(md metadata.MD) error {
 		s.mu.Unlock()
 		return nil
 	}
-	s.header = metadata.Join(s.header, md)
+	s.header = Join(s.header, md)
 	s.mu.Unlock()
 	return nil
 }
 
 // SetTrailer sets the trailer metadata which will be sent with the RPC status
 // by the server. This can be called multiple times. Server side only.
-func (s *Stream) SetTrailer(md metadata.MD) error {
+func (s *Stream) SetTrailer(md MD) error {
 	if md.Len() == 0 {
 		return nil
 	}
 	s.mu.Lock()
-	s.trailer = metadata.Join(s.trailer, md)
+	s.trailer = Join(s.trailer, md)
 	s.mu.Unlock()
 	return nil
 }
@@ -613,7 +612,7 @@ type ServerTransport interface {
 
 	// WriteHeader sends the header metadata for the given stream.
 	// WriteHeader may not be called on all streams.
-	WriteHeader(s *Stream, md metadata.MD) error
+	WriteHeader(s *Stream, md MD) error
 
 	// Write sends the data for the given stream.
 	// Write may not be called on all streams.

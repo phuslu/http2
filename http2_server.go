@@ -36,7 +36,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
 )
@@ -299,7 +298,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	s.ctx = newContextWithStream(s.ctx, s)
 	// Attach the received metadata to the context.
 	if len(state.mdata) > 0 {
-		s.ctx = metadata.NewIncomingContext(s.ctx, state.mdata)
+		s.ctx = NewIncomingContext(s.ctx, state.mdata)
 	}
 	if state.statsTags != nil {
 		s.ctx = stats.SetIncomingTags(s.ctx, state.statsTags)
@@ -670,7 +669,7 @@ func (t *http2Server) handleWindowUpdate(f *http2.WindowUpdateFrame) {
 }
 
 // WriteHeader sends the header metedata md back to the client.
-func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
+func (t *http2Server) WriteHeader(s *Stream, md MD) error {
 	select {
 	case <-s.ctx.Done():
 		return ContextErr(s.ctx.Err())
@@ -687,7 +686,7 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 	s.headerOk = true
 	if md.Len() > 0 {
 		if s.header.Len() > 0 {
-			s.header = metadata.Join(s.header, md)
+			s.header = Join(s.header, md)
 		} else {
 			s.header = md
 		}
