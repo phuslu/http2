@@ -33,7 +33,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
 )
 
@@ -340,14 +339,14 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *Stream {
 // NewStream creates a stream and registers it into the transport as "active"
 // streams.
 func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Stream, err error) {
-	pr := &peer.Peer{
+	pr := &Peer{
 		Addr: t.remoteAddr,
 	}
 	// Attach Auth info if there is any.
 	if t.authInfo != nil {
 		pr.AuthInfo = t.authInfo
 	}
-	ctx = peer.NewContext(ctx, pr)
+	ctx = NewContext(ctx, pr)
 	var (
 		authData = make(map[string]string)
 		audience string

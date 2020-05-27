@@ -36,7 +36,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
 )
 
 // NewServerHandlerTransport returns a ServerTransport handling gRPC
@@ -307,14 +306,14 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 		method:       req.URL.Path,
 		recvCompress: req.Header.Get("grpc-encoding"),
 	}
-	pr := &peer.Peer{
+	pr := &Peer{
 		Addr: ht.RemoteAddr(),
 	}
 	if req.TLS != nil {
 		pr.AuthInfo = credentials.TLSInfo{State: *req.TLS}
 	}
 	ctx = NewIncomingContext(ctx, ht.headerMD)
-	ctx = peer.NewContext(ctx, pr)
+	ctx = NewContext(ctx, pr)
 	s.ctx = newContextWithStream(ctx, s)
 	s.trReader = &transportReader{
 		reader:        &recvBufferReader{ctx: s.ctx, recv: s.buf},

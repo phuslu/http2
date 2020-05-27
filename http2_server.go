@@ -36,7 +36,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
 )
 
@@ -284,14 +283,14 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	} else {
 		s.ctx, s.cancel = context.WithCancel(t.ctx)
 	}
-	pr := &peer.Peer{
+	pr := &Peer{
 		Addr: t.remoteAddr,
 	}
 	// Attach Auth info if there is any.
 	if t.authInfo != nil {
 		pr.AuthInfo = t.authInfo
 	}
-	s.ctx = peer.NewContext(s.ctx, pr)
+	s.ctx = NewContext(s.ctx, pr)
 	// Cache the current stream to the context so that the server application
 	// can find out. Required when the server wants to send some metadata
 	// back to the client (unary call only).
