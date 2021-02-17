@@ -24,7 +24,6 @@ import (
 	"io"
 	"math"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,8 +42,7 @@ type Http2Client struct {
 	conn       net.Conn // underlying communication channel
 	remoteAddr net.Addr
 	localAddr  net.Addr
-	authInfo   AuthInfo // auth info about the connection
-	nextID     uint32   // the next stream ID to be used
+	nextID     uint32 // the next stream ID to be used
 
 	// goAway is closed to notify the upper layer (i.e., addrConn.transportMonitor)
 	// that the server sent GoAway on this transport.
@@ -67,10 +65,6 @@ type Http2Client struct {
 
 	// The scheme used: https if TLS is on, http otherwise.
 	scheme string
-
-	isSecure bool
-
-	creds []PerRPCCredentials
 
 	// Boolean to keep track of reading activity on transport.
 	// 1 is true and 0 is false.
@@ -160,21 +154,6 @@ func NewHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions, t
 			conn.Close()
 		}
 	}(conn)
-	var (
-		isSecure bool
-		authInfo AuthInfo
-	)
-	if creds := opts.TransportCredentials; creds != nil {
-		scheme = "https"
-		conn, authInfo, err = creds.ClientHandshake(connectCtx, addr.Addr, conn)
-		if err != nil {
-			// Credentials handshake errors are typically considered permanent
-			// to avoid retrying on e.g. bad certificates.
-			temp := isTemporary(err)
-			return nil, connectionErrorf(temp, err, "transport: authentication handshake failed: %v", err)
-		}
-		isSecure = true
-	}
 	kp := opts.KeepaliveParams
 	// Validate keepalive parameters.
 	if kp.Time == 0 {
@@ -207,7 +186,6 @@ func NewHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions, t
 		conn:       conn,
 		remoteAddr: conn.RemoteAddr(),
 		localAddr:  conn.LocalAddr(),
-		authInfo:   authInfo,
 		// The client initiated stream id is odd starting from 1.
 		nextID:            1,
 		goAway:            make(chan struct{}),
@@ -221,8 +199,6 @@ func NewHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions, t
 		scheme:            scheme,
 		state:             reachable,
 		activeStreams:     make(map[uint32]*Stream),
-		isSecure:          isSecure,
-		creds:             opts.PerRPCCredentials,
 		maxStreams:        defaultMaxStreamsClient,
 		streamsQuota:      newQuotaPool(defaultMaxStreamsClient),
 		streamSendQuota:   defaultWindowSize,
@@ -339,55 +315,7 @@ func (t *Http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	pr := &Peer{
 		Addr: t.remoteAddr,
 	}
-	// Attach Auth info if there is any.
-	if t.authInfo != nil {
-		pr.AuthInfo = t.authInfo
-	}
 	ctx = NewContext(ctx, pr)
-	var (
-		authData = make(map[string]string)
-		audience string
-	)
-	// Create an audience string only if needed.
-	if len(t.creds) > 0 || callHdr.Creds != nil {
-		// Construct URI required to get auth request metadata.
-		// Omit port if it is the default one.
-		host := strings.TrimSuffix(callHdr.Host, ":443")
-		pos := strings.LastIndex(callHdr.Method, "/")
-		if pos == -1 {
-			pos = len(callHdr.Method)
-		}
-		audience = "https://" + host + callHdr.Method[:pos]
-	}
-	for _, c := range t.creds {
-		data, err := c.GetRequestMetadata(ctx, audience)
-		if err != nil {
-			return nil, streamErrorf(codesInternal, "transport: %v", err)
-		}
-		for k, v := range data {
-			// Capital header names are illegal in HTTP/2.
-			k = strings.ToLower(k)
-			authData[k] = v
-		}
-	}
-	callAuthData := map[string]string{}
-	// Check if PerRPCCredentials were provided via call options.
-	// Note: if these credentials are provided both via dial options and call
-	// options, then both sets of credentials will be applied.
-	if callCreds := callHdr.Creds; callCreds != nil {
-		if !t.isSecure && callCreds.RequireTransportSecurity() {
-			return nil, streamErrorf(codesUnauthenticated, "transport: cannot send secure credentials on an insecure connection")
-		}
-		data, err := callCreds.GetRequestMetadata(ctx, audience)
-		if err != nil {
-			return nil, streamErrorf(codesInternal, "transport: %v", err)
-		}
-		for k, v := range data {
-			// Capital header names are illegal in HTTP/2
-			k = strings.ToLower(k)
-			callAuthData[k] = v
-		}
-	}
 	t.mu.Lock()
 	if t.activeStreams == nil {
 		t.mu.Unlock()
@@ -414,7 +342,6 @@ func (t *Http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	// first and create a slice of that exact size.
 	// Make the slice of certain predictable size to reduce allocations made by append.
 	hfLen := 7 // :method, :scheme, :path, :authority, content-type, user-agent, te
-	hfLen += len(authData) + len(callAuthData)
 	headerFields := make([]hpack.HeaderField, 0, hfLen)
 	headerFields = append(headerFields, hpack.HeaderField{Name: ":method", Value: "POST"})
 	headerFields = append(headerFields, hpack.HeaderField{Name: ":scheme", Value: t.scheme})
@@ -432,12 +359,6 @@ func (t *Http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		// TODO(mmukhi): Perhaps this field should be updated when actually writing out to the wire.
 		timeout := dl.Sub(time.Now())
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-timeout", Value: encodeTimeout(timeout)})
-	}
-	for k, v := range authData {
-		headerFields = append(headerFields, hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
-	}
-	for k, v := range callAuthData {
-		headerFields = append(headerFields, hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
 	}
 	if b := OutgoingTags(ctx); b != nil {
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-tags-bin", Value: encodeBinHeader(b)})

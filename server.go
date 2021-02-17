@@ -47,8 +47,7 @@ type Http2Server struct {
 	conn        net.Conn
 	remoteAddr  net.Addr
 	localAddr   net.Addr
-	maxStreamID uint32   // max stream ID ever seen
-	authInfo    AuthInfo // auth info about the connection
+	maxStreamID uint32 // max stream ID ever seen
 	inTapHandle TapServerInHandle
 	framer      *framer
 	hBuf        *bytes.Buffer  // the buffer for HPACK encoding
@@ -181,7 +180,6 @@ func NewHTTP2Server(conn net.Conn, config *ServerConfig) (_ *Http2Server, err er
 		conn:              conn,
 		remoteAddr:        conn.RemoteAddr(),
 		localAddr:         conn.LocalAddr(),
-		authInfo:          config.AuthInfo,
 		framer:            framer,
 		hBuf:              &buf,
 		hEnc:              hpack.NewEncoder(&buf),
@@ -282,10 +280,6 @@ func (t *Http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 	pr := &Peer{
 		Addr: t.remoteAddr,
-	}
-	// Attach Auth info if there is any.
-	if t.authInfo != nil {
-		pr.AuthInfo = t.authInfo
 	}
 	s.ctx = NewContext(s.ctx, pr)
 	// Cache the current stream to the context so that the server application

@@ -457,7 +457,6 @@ const (
 // ServerConfig consists of all the configurations to establish a server transport.
 type ServerConfig struct {
 	MaxStreams            uint32
-	AuthInfo              AuthInfo
 	InTapHandle           TapServerInHandle
 	StatsHandler          statsHandler
 	KeepaliveParams       ServerParameters
@@ -479,10 +478,6 @@ type ConnectOptions struct {
 	Dialer func(context.Context, string) (net.Conn, error)
 	// FailOnNonTempDialError specifies if gRPC fails on non-temporary dial errors.
 	FailOnNonTempDialError bool
-	// PerRPCCredentials stores the PerRPCCredentials required to issue RPCs.
-	PerRPCCredentials []PerRPCCredentials
-	// TransportCredentials stores the Authenticator required to setup a client connection.
-	TransportCredentials TransportCredentials
 	// KeepaliveParams stores the keepalive parameters.
 	KeepaliveParams ClientParameters
 	// StatsHandler stores the handler for stats.
@@ -531,9 +526,6 @@ type CallHdr struct {
 	// SendCompress specifies the compression algorithm applied on
 	// outbound message.
 	SendCompress string
-
-	// Creds specifies credentials.PerRPCCredentials for a call.
-	Creds PerRPCCredentials
 
 	// Flush indicates whether a new stream command should be sent
 	// to the peer without waiting for the first data. This is
