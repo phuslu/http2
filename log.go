@@ -26,22 +26,20 @@ import (
 	"os"
 )
 
-var (
-	logger = log.New(os.Stderr, "http2: ", log.Lshortfile)
-)
+var DefaultLogger = log.New(os.Stderr, "http2: ", log.Lshortfile)
 
 func infof(format string, args ...interface{}) {
-	logger.Printf(format, args...)
+	DefaultLogger.Printf(format, args...)
 }
 
 func warningf(format string, args ...interface{}) {
-	logger.Printf(format, args...)
+	DefaultLogger.Printf(format, args...)
 }
 
 func errorf(format string, args ...interface{}) {
-	logger.Printf(format, args...)
+	DefaultLogger.Printf(format, args...)
 }
 
 func fatalf(format string, args ...interface{}) {
-	logger.Fatalf(format, args...)
+	DefaultLogger.Fatalf(format, args...)
 }
