@@ -26,7 +26,6 @@ import (
 	"io"
 	"net"
 	"sync"
-	"time"
 
 	"golang.org/x/net/http2"
 )
@@ -205,7 +204,7 @@ const (
 type Stream struct {
 	id uint32
 	// nil for client side Stream.
-	st ServerTransport
+	st *Http2Server
 	// ctx is the associated context of the stream.
 	ctx context.Context
 	// cancel is always nil for client side Stream.
@@ -317,7 +316,7 @@ func (s *Stream) Trailer() MD {
 
 // ServerTransport returns the underlying ServerTransport for the stream.
 // The client side stream always returns nil.
-func (s *Stream) ServerTransport() ServerTransport {
+func (s *Stream) ServerTransport() *Http2Server {
 	return s.st
 }
 
@@ -469,12 +468,6 @@ type ServerConfig struct {
 	ReadBufferSize        int
 }
 
-// NewServerTransport creates a ServerTransport with conn or non-nil error
-// if it fails.
-func NewServerTransport(protocol string, conn net.Conn, config *ServerConfig) (ServerTransport, error) {
-	return newHTTP2Server(conn, config)
-}
-
 // ConnectOptions covers all relevant options for communicating with the server.
 type ConnectOptions struct {
 	// UserAgent is the application user agent.
@@ -508,12 +501,6 @@ type ConnectOptions struct {
 type TargetInfo struct {
 	Addr     string
 	Metadata interface{}
-}
-
-// NewClientTransport establishes the transport with the required ConnectOptions
-// and returns it to the caller.
-func NewClientTransport(ctx context.Context, target TargetInfo, opts ConnectOptions, timeout time.Duration) (ClientTransport, error) {
-	return newHTTP2Client(ctx, target, opts, timeout)
 }
 
 // Options provides additional hints and information for message
@@ -555,80 +542,6 @@ type CallHdr struct {
 	// for performance purposes.
 	// If it's false, new stream will never be flushed.
 	Flush bool
-}
-
-// ClientTransport is the common interface for all gRPC client-side transport
-// implementations.
-type ClientTransport interface {
-	// Close tears down this transport. Once it returns, the transport
-	// should not be accessed any more. The caller must make sure this
-	// is called only once.
-	Close() error
-
-	// GracefulClose starts to tear down the transport. It stops accepting
-	// new RPCs and wait the completion of the pending RPCs.
-	GracefulClose() error
-
-	// Write sends the data for the given stream. A nil stream indicates
-	// the write is to be performed on the transport as a whole.
-	Write(s *Stream, hdr []byte, data []byte, opts *Options) error
-
-	// NewStream creates a Stream for an RPC.
-	NewStream(ctx context.Context, callHdr *CallHdr) (*Stream, error)
-
-	// CloseStream clears the footprint of a stream when the stream is
-	// not needed any more. The err indicates the error incurred when
-	// CloseStream is called. Must be called when a stream is finished
-	// unless the associated transport is closing.
-	CloseStream(stream *Stream, err error)
-
-	// Error returns a channel that is closed when some I/O error
-	// happens. Typically the caller should have a goroutine to monitor
-	// this in order to take action (e.g., close the current transport
-	// and create a new one) in error case. It should not return nil
-	// once the transport is initiated.
-	Error() <-chan struct{}
-
-	// GoAway returns a channel that is closed when ClientTransport
-	// receives the draining signal from the server (e.g., GOAWAY frame in
-	// HTTP/2).
-	GoAway() <-chan struct{}
-
-	// GetGoAwayReason returns the reason why GoAway frame was received.
-	GetGoAwayReason() GoAwayReason
-}
-
-// ServerTransport is the common interface for all gRPC server-side transport
-// implementations.
-//
-// Methods may be called concurrently from multiple goroutines, but
-// Write methods for a given Stream will be called serially.
-type ServerTransport interface {
-	// HandleStreams receives incoming streams using the given handler.
-	HandleStreams(func(*Stream), func(context.Context, string) context.Context)
-
-	// WriteHeader sends the header metadata for the given stream.
-	// WriteHeader may not be called on all streams.
-	WriteHeader(s *Stream, md MD) error
-
-	// Write sends the data for the given stream.
-	// Write may not be called on all streams.
-	Write(s *Stream, hdr []byte, data []byte, opts *Options) error
-
-	// WriteStatus sends the status of a stream to the client.  WriteStatus is
-	// the final call made on a stream and always occurs.
-	WriteStatus(s *Stream, st *Status) error
-
-	// Close tears down the transport. Once it is called, the transport
-	// should not be accessed any more. All the pending streams and their
-	// handlers will be terminated asynchronously.
-	Close() error
-
-	// RemoteAddr returns the remote network address.
-	RemoteAddr() net.Addr
-
-	// Drain notifies the client this ServerTransport stops accepting new RPCs.
-	Drain()
 }
 
 // streamErrorf creates an StreamError with the specified error code and description.
