@@ -457,7 +457,6 @@ const (
 // ServerConfig consists of all the configurations to establish a server transport.
 type ServerConfig struct {
 	MaxStreams            uint32
-	InTapHandle           TapServerInHandle
 	StatsHandler          statsHandler
 	KeepaliveParams       ServerParameters
 	KeepalivePolicy       EnforcementPolicy

@@ -48,7 +48,6 @@ type Http2Server struct {
 	remoteAddr  net.Addr
 	localAddr   net.Addr
 	maxStreamID uint32 // max stream ID ever seen
-	inTapHandle TapServerInHandle
 	framer      *framer
 	hBuf        *bytes.Buffer  // the buffer for HPACK encoding
 	hEnc        *hpack.Encoder // HPACK encoder
@@ -184,7 +183,6 @@ func NewHTTP2Server(conn net.Conn, config *ServerConfig) (_ *Http2Server, err er
 		hBuf:              &buf,
 		hEnc:              hpack.NewEncoder(&buf),
 		maxStreams:        maxStreams,
-		inTapHandle:       config.InTapHandle,
 		controlBuf:        newControlBuffer(),
 		fc:                &inFlow{limit: uint32(icwz)},
 		sendQuotaPool:     newQuotaPool(defaultWindowSize),
@@ -295,18 +293,6 @@ func (t *Http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 	if state.statsTrace != nil {
 		s.ctx = SetIncomingTrace(s.ctx, state.statsTrace)
-	}
-	if t.inTapHandle != nil {
-		var err error
-		info := &TapInfo{
-			FullMethodName: state.method,
-		}
-		s.ctx, err = t.inTapHandle(s.ctx, info)
-		if err != nil {
-			warningf("transport: Http2Server.operateHeaders got an error from InTapHandle: %v", err)
-			t.controlBuf.put(&resetStream{s.id, http2.ErrCodeRefusedStream})
-			return
-		}
 	}
 	t.mu.Lock()
 	if t.state != reachable {
