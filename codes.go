@@ -18,7 +18,7 @@
 
 // Package codes defines the canonical error codes used by gRPC. It is
 // consistent across various languages.
-package fasthttp2
+package http2
 
 import (
 	"fmt"

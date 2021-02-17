@@ -21,7 +21,7 @@
 // http.Handler interface), rather than speaking low-level HTTP/2
 // frames itself. It is the implementation of *grpc.Server.ServeHTTP.
 
-package fasthttp2
+package http2
 
 import (
 	"context"

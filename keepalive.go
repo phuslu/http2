@@ -18,7 +18,7 @@
 
 // Package keepalive defines configurable parameters for point-to-point
 // healthcheck.
-package fasthttp2
+package http2
 
 import (
 	"time"

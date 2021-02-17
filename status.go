@@ -25,7 +25,7 @@
 //
 // This package upholds the invariants that a non-nil error may not
 // contain an OK code, and an OK code must result in a nil error.
-package fasthttp2
+package http2
 
 import (
 	"context"

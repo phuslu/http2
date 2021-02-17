@@ -19,7 +19,7 @@
 // Package stats is for collecting and reporting various network and RPC stats.
 // This package is for monitoring purpose only. All fields are read-only.
 // All APIs are experimental.
-package fasthttp2
+package http2
 
 import (
 	"context"

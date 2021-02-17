@@ -18,7 +18,7 @@
 
 // Package peer defines various peer information associated with RPCs and
 // corresponding utils.
-package fasthttp2
+package http2
 
 import (
 	"context"

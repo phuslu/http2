@@ -18,7 +18,7 @@
 
 // Package tap defines the function handles which are executed on the transport
 // layer of gRPC-Go and related information. Everything here is EXPERIMENTAL.
-package fasthttp2
+package http2
 
 import (
 	"context"

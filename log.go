@@ -19,7 +19,7 @@
 // This file contains wrappers for grpclog functions.
 // The transport package only logs to verbose level 2 by default.
 
-package fasthttp2
+package http2
 
 import (
 	"log"
@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	logger = log.New(os.Stderr, "fasthttp2: ", log.Lshortfile)
+	logger = log.New(os.Stderr, "http2: ", log.Lshortfile)
 )
 
 func infof(format string, args ...interface{}) {

@@ -16,9 +16,9 @@
  *
  */
 
-// package fasthttp2 defines and implements message oriented communication
+// package http2 defines and implements message oriented communication
 // channel to complete various transactions (e.g., an RPC).
-package fasthttp2
+package http2
 
 import (
 	"context"
