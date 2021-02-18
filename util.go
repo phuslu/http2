@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -71,21 +70,21 @@ var (
 	}
 	httpStatusConvTab = map[int]Code{
 		// 400 Bad Request - INTERNAL.
-		http.StatusBadRequest: codesInternal,
+		400: codesInternal,
 		// 401 Unauthorized  - UNAUTHENTICATED.
-		http.StatusUnauthorized: codesUnauthenticated,
+		401: codesUnauthenticated,
 		// 403 Forbidden - PERMISSION_DENIED.
-		http.StatusForbidden: codesPermissionDenied,
+		403: codesPermissionDenied,
 		// 404 Not Found - UNIMPLEMENTED.
-		http.StatusNotFound: codesUnimplemented,
+		404: codesUnimplemented,
 		// 429 Too Many Requests - UNAVAILABLE.
-		http.StatusTooManyRequests: codesUnavailable,
+		429: codesUnavailable,
 		// 502 Bad Gateway - UNAVAILABLE.
-		http.StatusBadGateway: codesUnavailable,
+		502: codesUnavailable,
 		// 503 Service Unavailable - UNAVAILABLE.
-		http.StatusServiceUnavailable: codesUnavailable,
+		503: codesUnavailable,
 		// 504 Gateway timeout - UNAVAILABLE.
-		http.StatusGatewayTimeout: codesUnavailable,
+		504: codesUnavailable,
 	}
 )
 
@@ -213,12 +212,12 @@ func (d *decodeState) decodeResponseHeader(frame *http2.MetaHeadersFrame) error 
 		return streamErrorf(codesInternal, "malformed header: doesn't contain status(gRPC or HTTP)")
 	}
 
-	if *(d.httpStatus) != http.StatusOK {
+	if *(d.httpStatus) != 200 {
 		code, ok := httpStatusConvTab[*(d.httpStatus)]
 		if !ok {
 			code = codesUnknown
 		}
-		return streamErrorf(code, http.StatusText(*(d.httpStatus)))
+		return streamErrorf(code, httpStatusText(*(d.httpStatus)))
 	}
 
 	// gRPC status doesn't exist and http status is OK.
@@ -231,6 +230,136 @@ func (d *decodeState) decodeResponseHeader(frame *http2.MetaHeadersFrame) error 
 	d.rawStatusCode = &code
 	return nil
 
+}
+
+func httpStatusText(code int) (text string) {
+	switch code {
+	case 100: // RFC 7231, 6.2.1
+		text = "Continue"
+	case 101: // RFC 7231, 6.2.2
+		text = "Switching Protocols"
+	case 102: // RFC 2518, 10.1
+		text = "Processing"
+	case 103: // RFC 8297
+		text = "Early Hints"
+	case 200: // RFC 7231, 6.3.1
+		text = "OK"
+	case 201: // RFC 7231, 6.3.2
+		text = "Created"
+	case 202: // RFC 7231, 6.3.3
+		text = "Accepted"
+	case 203: // RFC 7231, 6.3.4
+		text = "Non-Authoritative Information"
+	case 204: // RFC 7231, 6.3.5
+		text = "No Content"
+	case 205: // RFC 7231, 6.3.6
+		text = "Reset Content"
+	case 206: // RFC 7233, 4.1
+		text = "Partial Content"
+	case 207: // RFC 4918, 11.1
+		text = "Multi-Status"
+	case 208: // RFC 5842, 7.1
+		text = "Already Reported"
+	case 226: // RFC 3229, 10.4.1
+		text = "IM Used"
+	case 300: // RFC 7231, 6.4.1
+		text = "Multiple Choices"
+	case 301: // RFC 7231, 6.4.2
+		text = "Moved Permanently"
+	case 302: // RFC 7231, 6.4.3
+		text = "Found"
+	case 303: // RFC 7231, 6.4.4
+		text = "See Other"
+	case 304: // RFC 7232, 4.1
+		text = "Not Modified"
+	case 305: // RFC 7231, 6.4.5
+		text = "Use Proxy"
+	case 307: // RFC 7231, 6.4.7
+		text = "Temporary Redirect"
+	case 308: // RFC 7538, 3
+		text = "Permanent Redirect"
+	case 400: // RFC 7231, 6.5.1
+		text = "Bad Request"
+	case 401: // RFC 7235, 3.1
+		text = "Unauthorized"
+	case 402: // RFC 7231, 6.5.2
+		text = "Payment Required"
+	case 403: // RFC 7231, 6.5.3
+		text = "Forbidden"
+	case 404: // RFC 7231, 6.5.4
+		text = "Not Found"
+	case 405: // RFC 7231, 6.5.5
+		text = "Method Not Allowed"
+	case 406: // RFC 7231, 6.5.6
+		text = "Not Acceptable"
+	case 407: // RFC 7235, 3.2
+		text = "Proxy Authentication Required"
+	case 408: // RFC 7231, 6.5.7
+		text = "Request Timeout"
+	case 409: // RFC 7231, 6.5.8
+		text = "Conflict"
+	case 410: // RFC 7231, 6.5.9
+		text = "Gone"
+	case 411: // RFC 7231, 6.5.10
+		text = "Length Required"
+	case 412: // RFC 7232, 4.2
+		text = "Precondition Failed"
+	case 413: // RFC 7231, 6.5.11
+		text = "Request Entity Too Large"
+	case 414: // RFC 7231, 6.5.12
+		text = "Request URI Too Long"
+	case 415: // RFC 7231, 6.5.13
+		text = "Unsupported Media Type"
+	case 416: // RFC 7233, 4.4
+		text = "Requested Range Not Satisfiable"
+	case 417: // RFC 7231, 6.5.14
+		text = "Expectation Failed"
+	case 418: // RFC 7168, 2.3.3
+		text = "I'm a teapot"
+	case 421: // RFC 7540, 9.1.2
+		text = "Misdirected Request"
+	case 422: // RFC 4918, 11.2
+		text = "Unprocessable Entity"
+	case 423: // RFC 4918, 11.3
+		text = "Locked"
+	case 424: // RFC 4918, 11.4
+		text = "Failed Dependency"
+	case 425: // RFC 8470, 5.2.
+		text = "Too Early"
+	case 426: // RFC 7231, 6.5.15
+		text = "Upgrade Required"
+	case 428: // RFC 6585, 3
+		text = "Precondition Required"
+	case 429: // RFC 6585, 4
+		text = "Too Many Requests"
+	case 431: // RFC 6585, 5
+		text = "Request Header Fields Too Large"
+	case 451: // RFC 7725, 3
+		text = "Unavailable For Legal Reasons"
+	case 500: // RFC 7231, 6.6.1
+		text = "Internal Server Error"
+	case 501: // RFC 7231, 6.6.2
+		text = "Not Implemented"
+	case 502: // RFC 7231, 6.6.3
+		text = "Bad Gateway"
+	case 503: // RFC 7231, 6.6.4
+		text = "Service Unavailable"
+	case 504: // RFC 7231, 6.6.5
+		text = "Gateway Timeout"
+	case 505: // RFC 7231, 6.6.6
+		text = "HTTP Version Not Supported"
+	case 506: // RFC 2295, 8.1
+		text = "Variant Also Negotiates"
+	case 507: // RFC 4918, 11.5
+		text = "Insufficient Storage"
+	case 508: // RFC 5842, 7.2
+		text = "Loop Detected"
+	case 510: // RFC 2774, 7
+		text = "Not Extended"
+	case 511: // RFC 6585, 6
+		text = "Network Authentication Required"
+	}
+	return
 }
 
 func (d *decodeState) addMetadata(k, v string) {
