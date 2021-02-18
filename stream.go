@@ -314,9 +314,9 @@ func (s *Stream) Trailer() MD {
 	return c
 }
 
-// ServerTransport returns the underlying ServerTransport for the stream.
+// Server returns the underlying Server for the stream.
 // The client side stream always returns nil.
-func (s *Stream) ServerTransport() *Server {
+func (s *Stream) Server() *Server {
 	return s.st
 }
 
