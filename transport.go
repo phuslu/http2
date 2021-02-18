@@ -204,7 +204,7 @@ const (
 type Stream struct {
 	id uint32
 	// nil for client side Stream.
-	st *Http2Server
+	st *Server
 	// ctx is the associated context of the stream.
 	ctx context.Context
 	// cancel is always nil for client side Stream.
@@ -316,7 +316,7 @@ func (s *Stream) Trailer() MD {
 
 // ServerTransport returns the underlying ServerTransport for the stream.
 // The client side stream always returns nil.
-func (s *Stream) ServerTransport() *Http2Server {
+func (s *Stream) ServerTransport() *Server {
 	return s.st
 }
 
