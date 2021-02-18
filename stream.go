@@ -235,9 +235,9 @@ type Stream struct {
 	// Close headerChan to indicate the end of reception of header metadata.
 	headerChan chan struct{}
 	// header caches the received header metadata.
-	header MD
+	header Metadata
 	// The key-value map of trailer metadata.
-	trailer MD
+	trailer Metadata
 
 	mu sync.RWMutex // guard the following
 	// headerOK becomes true from the first header is about to send.
@@ -285,7 +285,7 @@ func (s *Stream) GoAway() <-chan struct{} {
 // Header acquires the key-value pairs of header metadata once it
 // is available. It blocks until i) the metadata is ready or ii) there is no
 // header metadata or iii) the stream is canceled/expired.
-func (s *Stream) Header() (MD, error) {
+func (s *Stream) Header() (Metadata, error) {
 	var err error
 	select {
 	case <-s.ctx.Done():
@@ -305,9 +305,9 @@ func (s *Stream) Header() (MD, error) {
 }
 
 // Trailer returns the cached trailer metedata. Note that if it is not called
-// after the entire stream is done, it could return an empty MD. Client
+// after the entire stream is done, it could return an empty Metadata. Client
 // side only.
-func (s *Stream) Trailer() MD {
+func (s *Stream) Trailer() Metadata {
 	s.mu.RLock()
 	c := s.trailer.Copy()
 	s.mu.RUnlock()
@@ -337,7 +337,7 @@ func (s *Stream) Status() *Status {
 
 // SetHeader sets the header metadata. This can be called multiple times.
 // Server side only.
-func (s *Stream) SetHeader(md MD) error {
+func (s *Stream) SetHeader(md Metadata) error {
 	s.mu.Lock()
 	if s.headerOk || s.state == streamDone {
 		s.mu.Unlock()
@@ -354,7 +354,7 @@ func (s *Stream) SetHeader(md MD) error {
 
 // SetTrailer sets the trailer metadata which will be sent with the RPC status
 // by the server. This can be called multiple times. Server side only.
-func (s *Stream) SetTrailer(md MD) error {
+func (s *Stream) SetTrailer(md Metadata) error {
 	if md.Len() == 0 {
 		return nil
 	}

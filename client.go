@@ -377,7 +377,7 @@ func (t *Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Stream, er
 			}
 		}
 	}
-	if md, ok := t.md.(*MD); ok {
+	if md, ok := t.md.(*Metadata); ok {
 		for k, vv := range *md {
 			if isReservedHeader(k) {
 				continue

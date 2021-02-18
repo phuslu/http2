@@ -645,7 +645,7 @@ func (t *Server) handleWindowUpdate(f *http2.WindowUpdateFrame) {
 }
 
 // WriteHeader sends the header metedata md back to the client.
-func (t *Server) WriteHeader(s *Stream, md MD) error {
+func (t *Server) WriteHeader(s *Stream, md Metadata) error {
 	select {
 	case <-s.ctx.Done():
 		return ContextErr(s.ctx.Err())

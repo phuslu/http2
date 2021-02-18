@@ -80,7 +80,7 @@ type InHeader struct {
 	// Compression is the compression algorithm used for the RPC.
 	Compression string
 	// Header contains the header metadata received.
-	Header MD
+	Header Metadata
 
 	// The following fields are valid only if Client is false.
 	// FullMethod is the full RPC method string, i.e., /package.service/method.
@@ -104,7 +104,7 @@ type InTrailer struct {
 	WireLength int
 	// Trailer contains the trailer metadata received from the server. This
 	// field is only valid if this InTrailer is from the client side.
-	Trailer MD
+	Trailer Metadata
 }
 
 // IsClient indicates if the stats information is from client side.
@@ -140,7 +140,7 @@ type OutHeader struct {
 	// Compression is the compression algorithm used for the RPC.
 	Compression string
 	// Header contains the header metadata sent.
-	Header MD
+	Header Metadata
 
 	// The following fields are valid only if Client is true.
 	// FullMethod is the full RPC method string, i.e., /package.service/method.
@@ -167,7 +167,7 @@ type OutTrailer struct {
 	WireLength int
 	// Trailer contains the trailer metadata sent to the client. This
 	// field is only valid if this OutTrailer is from the server side.
-	Trailer MD
+	Trailer Metadata
 }
 
 // IsClient indicates if this stats information is from client side.
@@ -186,7 +186,7 @@ type End struct {
 	// Trailer contains the trailer metadata received from the server. This
 	// field is only valid if this End is from the client side.
 	// Deprecated: use Trailer in InTrailer instead.
-	Trailer MD
+	Trailer Metadata
 	// Error is the error the RPC ended with. It is an error generated from
 	// status.Status and can be converted back to status.Status using
 	// status.FromError if non-nil.
