@@ -279,7 +279,7 @@ func (t *Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(*Stre
 	pr := &Peer{
 		Addr: t.remoteAddr,
 	}
-	s.ctx = NewContext(s.ctx, pr)
+	s.ctx = newContextWithPeer(s.ctx, pr)
 	// Cache the current stream to the context so that the server application
 	// can find out. Required when the server wants to send some metadata
 	// back to the client (unary call only).

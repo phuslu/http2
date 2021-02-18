@@ -315,7 +315,7 @@ func (t *Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Stream, er
 	pr := &Peer{
 		Addr: t.remoteAddr,
 	}
-	ctx = NewContext(ctx, pr)
+	ctx = newContextWithPeer(ctx, pr)
 	t.mu.Lock()
 	if t.activeStreams == nil {
 		t.mu.Unlock()
